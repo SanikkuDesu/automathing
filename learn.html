@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learn Automat // Protocol</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    
+    <style>
+        /* --- FONT LOADING --- */
+        @font-face {
+            font-family: 'CollectiveConsciousness';
+            src: url('automatons/Collective Consciousness Regular.ttf') format('truetype');
+            font-weight: normal; font-style: normal; font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'FSSinclair';
+            src: url('automatons/FSSinclairMedium.otf') format('opentype');
+            font-weight: medium; font-style: normal; font-display: swap;
+        }
+
+        /* --- GLOBAL STYLES --- */
+        body {
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Scanline Overlay */
+        .scanlines {
+            position: fixed; inset: 0; pointer-events: none;
+            background: repeating-linear-gradient(to bottom, transparent 0%, transparent 80%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0.1) 100%);
+            background-size: 100% 4px; z-index: 500; opacity: 0.4;
+        }
+
+        /* --- LAYOUT CONTAINERS --- */
+        .os-sidebar {
+            position: fixed;
+            right: 0; top: 0; bottom: 0;
+            width: 300px;
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 2px solid #333;
+            padding: 20px;
+            overflow-y: auto;
+            z-index: 100;
+            font-family: 'FSSinclair', monospace;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            box-sizing: border-box;
+            font-size: 0.8rem;
+            color: #888;
+            scrollbar-width: thin;
+            scrollbar-color: #444 #111;
+        }
+
+        .game-wrapper {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+        }
+
+        h1 {
+            font-family: 'FSSinclair', sans-serif;
+            font-size: 0.9rem; color: #555; letter-spacing: 4px;
+            text-transform: uppercase; margin-bottom: 20px;
+            border-bottom: 1px solid #333; display: inline-block; padding-bottom: 10px;
+        }
+
+        /* --- TERMINAL LOG STYLES --- */
+        .log-entry { margin-bottom: 4px; word-break: break-all; }
+        .log-system { color: #555; }
+        .log-success { color: #4caf50; }
+        .log-fail { color: #f44336; }
+        .log-divider { color: #333; margin: 10px 0; }
+        .cursor-blink { animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* --- GAME ELEMENTS --- */
+        #timer-display {
+            font-family: 'FSSinclair', monospace;
+            font-size: 1.5rem;
+            color: #fe3441;
+            margin-bottom: 20px;
+            text-shadow: 0 0 5px rgba(254, 52, 65, 0.5);
+            opacity: 0; transition: opacity 1s;
+        }
+
+        #word-display {
+            font-family: 'CollectiveConsciousness', sans-serif;
+            font-size: 5rem;
+            margin: 10px 0 30px 0;
+            color: #fff;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+            min-height: 120px;
+            letter-spacing: 5px;
+            opacity: 0; transition: opacity 1s;
+            white-space: nowrap;
+        }
+
+        /* --- STACKED FEEDBACK (3 ROWS) --- */
+        #feedback-container {
+            margin-top: 20px; opacity: 0;
+            transition: opacity 0.4s ease;
+            display: flex; flex-direction: column; align-items: center; gap: 15px;
+        }
+
+        .diff-display {
+            display: flex; flex-direction: row; gap: 8px; justify-content: center;
+            background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid #333;
+        }
+
+        .letter-column { 
+            display: flex; flex-direction: column; align-items: center; width: 45px; 
+        }
+        
+        /* Row 1: Your Guess */
+        .feedback-top {
+            font-family: 'FSSinclair', sans-serif; font-size: 2rem; text-transform: uppercase;
+            height: 40px; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Row 2: Automaton Symbol (Puzzle) */
+        .feedback-mid {
+            font-family: 'CollectiveConsciousness', sans-serif; font-size: 2.5rem; margin-top: 2px;
+            height: 40px; display: flex; align-items: center; justify-content: center; transition: all 0.3s;
+        }
+
+        /* Row 3: Helper English Letter (Only on error) */
+        .feedback-bot {
+            font-family: 'FSSinclair', sans-serif; font-size: 1rem; color: #888;
+            height: 20px; display: flex; align-items: center; justify-content: center;
+            margin-top: 5px; opacity: 0.8;
+        }
+
+        .correct-char { color: #4caf50; text-shadow: 0 0 5px #4caf50; } 
+        .close-char   { color: #ffeb3b; text-shadow: 0 0 5px #ffeb3b; } 
+        .wrong-char   { color: #f44336; text-decoration: line-through; opacity: 0.8; } 
+        
+        .reveal-dim    { color: #555; opacity: 0.3; } 
+        .reveal-bright { color: #fff; text-shadow: 0 0 10px #fff; } 
+
+        .meaning-display {
+            font-family: 'FSSinclair', sans-serif; font-size: 1.2rem; color: #888; font-style: italic; margin-top: 10px;
+        }
+
+        /* --- INPUT --- */
+        .input-area {
+            position: fixed; bottom: 80px; width: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 20;
+            pointer-events: none; opacity: 0; transition: opacity 1s;
+        }
+
+        input[type="text"] {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid #333; border-bottom: 2px solid #555;
+            color: #fff; font-family: 'FSSinclair', sans-serif;
+            font-size: 1.5rem; text-align: center;
+            width: 300px; padding: 15px; outline: none;
+            transition: all 0.3s; text-transform: uppercase; letter-spacing: 2px;
+            pointer-events: auto;
+        }
+
+        input[type="text"]:focus {
+            border-bottom-color: #fff; background: rgba(0, 0, 0, 0.7);
+            width: 320px; box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+        }
+
+        #next-btn {
+            margin-top: 10px; background: transparent; border: 1px solid #444; color: #888;
+            padding: 10px 30px; cursor: pointer; font-family: 'FSSinclair', sans-serif; text-transform: uppercase;
+            letter-spacing: 2px; transition: all 0.2s; display: none; pointer-events: auto;
+        }
+        #next-btn:hover { border-color: #fff; color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+
+        .loading { color: #666; font-size: 1rem; font-family: 'FSSinclair', sans-serif; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
+
+    </style>
+</head>
+<body>
+
+    <div class="scanlines"></div>
+    
+    <!-- Fake OS Sidebar -->
+    <div class="os-sidebar" id="terminal-log">
+        <div class="log-entry log-system">> SYSTEM INITIALIZING...<span class="cursor-blink">_</span></div>
+    </div>
+
+    <!-- Centered Game Container -->
+    <div class="game-wrapper">
+        <h1>// Decryption Protocol //</h1>
+
+        <!-- Timer -->
+        <div id="timer-display">0.00s</div>
+
+        <!-- The Word -->
+        <div id="word-display"><span class="loading">WAITING FOR SYSTEM...</span></div>
+
+        <!-- The Results -->
+        <div id="feedback-container">
+            <div class="diff-display" id="diff-result"></div>
+            <div class="meaning-display" id="meaning-result">Thinking...</div>
+            <button id="next-btn" onclick="nextWord()">NEXT SEQUENCE</button>
+        </div>
+    </div>
+
+    <div class="input-area" id="input-container">
+        <input type="text" id="user-guess" placeholder="INPUT TRANSLATION" autocomplete="off" disabled>
+    </div>
+
+    <script>
+        // --- AUDIO ENGINE ---
+        const audio = {
+            type: new Audio('automatons/ui_effect_5.ogg'),
+            correct: new Audio('automatons/menu_375.ogg'),
+            wrong: new Audio('automatons/bot_siren.ogg')
+        };
+        audio.type.volume = 0.4;
+        audio.correct.volume = 0.6;
+        audio.wrong.volume = 0.5;
+
+        function playTypeSound() {
+            const sound = audio.type.cloneNode(); 
+            sound.playbackRate = 0.8 + Math.random() * 0.5; 
+            sound.play().catch(e => {}); 
+        }
+
+        // --- TERMINAL / OS LOGIC ---
+        const terminalLog = document.getElementById('terminal-log');
+        const SYSTEM_BOOT_LINES = [
+            "LOADING KERNEL...",
+            "MOUNTING VOLUMES [OK]",
+            "CHECKING MEMORY INTEGRITY...",
+            "LOADING FONT: AUTOMATON.TTF",
+            "LOADING FONT: FSSINCLAIR.OTF",
+            "CONNECTING TO ARCHIVE...",
+            "ESTABLISHING SECURE UPLINK...",
+            "DECRYPTION KEY: FOUND",
+            "SYSTEM READY."
+        ];
+
+        function logToTerminal(text, cssClass = 'log-system') {
+            const prev = terminalLog.querySelector('.cursor-blink');
+            if(prev) prev.remove();
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${cssClass}`;
+            entry.innerHTML = `> ${text}`;
+            terminalLog.appendChild(entry);
+            
+            const cursor = document.createElement('span');
+            cursor.className = 'cursor-blink';
+            cursor.innerText = '_';
+            terminalLog.appendChild(cursor);
+
+            terminalLog.scrollTop = terminalLog.scrollHeight;
+        }
+
+        function logDivider() {
+            const div = document.createElement('div');
+            div.className = 'log-divider';
+            div.innerText = '----------------';
+            terminalLog.appendChild(div);
+            const blink = terminalLog.querySelector('.cursor-blink');
+            if(blink) terminalLog.appendChild(blink);
+            terminalLog.scrollTop = terminalLog.scrollHeight;
+        }
+
+        async function runBootSequence() {
+            for (let i = 0; i < SYSTEM_BOOT_LINES.length; i++) {
+                await new Promise(r => setTimeout(r, Math.random() * 300 + 100));
+                logToTerminal(SYSTEM_BOOT_LINES[i]);
+            }
+            await new Promise(r => setTimeout(r, 500));
+            startGameAfterBoot();
+        }
+
+        // --- GAME CONFIG & STATE ---
+        const WORD_LIST_URL = 'https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/sv/sv_50k.txt';
+        const TRANSLATION_API = 'https://api.mymemory.translated.net/get'; 
+        const FALLBACK_WORDS = ["Automat", "Maskin", "Robot", "Ström", "Kod", "Hjärna", "Tanke", "Minne", "Stål", "Ljus", "Mörker", "Framtid"];
+
+        let wordLibrary = [];
+        let currentTargetPhrase = ""; // Full phrase with number
+        let currentBaseWord = "";     // Word only for translation
+        let currentMeaning = "";
+        let isRevealed = false;
+        let startTime = 0;
+        let timerInterval = null;
+
+        // Elements
+        const wordDisplay = document.getElementById('word-display');
+        const inputField = document.getElementById('user-guess');
+        const feedbackContainer = document.getElementById('feedback-container');
+        const meaningResult = document.getElementById('meaning-result');
+        const diffResult = document.getElementById('diff-result');
+        const nextBtn = document.getElementById('next-btn');
+        const timerDisplay = document.getElementById('timer-display');
+        const inputContainer = document.getElementById('input-container');
+
+        // --- INIT ---
+        async function init() {
+            runBootSequence();
+            try {
+                const response = await fetch(WORD_LIST_URL);
+                if (!response.ok) throw new Error("Network response was not ok");
+                const text = await response.text();
+                wordLibrary = text.split('\n')
+                    .slice(0, 1500) 
+                    .map(line => line.split(' ')[0]) 
+                    .filter(w => w && w.length > 3 && /^[a-zA-ZäöåÄÖÅ]+$/.test(w)); 
+            } catch (error) {
+                wordLibrary = FALLBACK_WORDS;
+            }
+        }
+
+        function startGameAfterBoot() {
+            wordDisplay.style.opacity = 1;
+            timerDisplay.style.opacity = 1;
+            inputContainer.style.opacity = 1;
+            inputField.disabled = false;
+            nextWord();
+            inputField.addEventListener('input', () => { if(!isRevealed) playTypeSound(); });
+            inputField.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    if (!isRevealed) checkGuess();
+                    else nextWord();
+                }
+            });
+            inputField.focus();
+        }
+
+        // --- TIMING ---
+        function startTimer() {
+            stopTimer();
+            startTime = Date.now();
+            timerDisplay.innerText = "0.00s";
+            timerInterval = setInterval(() => {
+                const elapsed = (Date.now() - startTime) / 1000;
+                timerDisplay.innerText = elapsed.toFixed(2) + "s";
+            }, 50);
+        }
+
+        function stopTimer() { if(timerInterval) clearInterval(timerInterval); }
+        function getElapsedTime() { return (Date.now() - startTime) / 1000; }
+
+        // --- GAME LOGIC ---
+        function nextWord() {
+            isRevealed = false;
+            feedbackContainer.style.opacity = '0';
+            nextBtn.style.display = 'none';
+            inputField.value = '';
+            inputField.focus();
+            meaningResult.innerText = "Translating..."; 
+            
+            const randomIndex = Math.floor(Math.random() * wordLibrary.length);
+            currentBaseWord = wordLibrary[randomIndex];
+            currentTargetPhrase = currentBaseWord;
+
+            // --- RANDOM NUMBER INJECTION (30% Chance) ---
+            if (Math.random() < 0.30) {
+                const num = Math.floor(Math.random() * 99) + 1; 
+                if (Math.random() < 0.5) {
+                    currentTargetPhrase = `${num} ${currentBaseWord}`;
+                } else {
+                    currentTargetPhrase = `${currentBaseWord} ${num}`;
+                }
+            }
+
+            wordDisplay.innerHTML = currentTargetPhrase;
+            startTimer();
+            // Fetch translation for just the word part
+            fetchTranslation(currentBaseWord);
+        }
+
+        async function fetchTranslation(word) {
+            try {
+                const url = `${TRANSLATION_API}?q=${encodeURIComponent(word)}&langpair=sv|en`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if(data && data.responseData) currentMeaning = data.responseData.translatedText;
+                else currentMeaning = "Unknown";
+            } catch (e) { currentMeaning = "Translation unavailable"; }
+        }
+
+        function normalizeChar(char) {
+            if(!char) return '';
+            const c = char.toLowerCase();
+            if(c === 'å' || c === 'ä') return 'a';
+            if(c === 'ö') return 'o';
+            return c;
+        }
+
+        function calculateGrade(time, success) {
+            let speedRank = "";
+            if (time < 2.0) speedRank = "OMNISCIENT";
+            else if (time < 3.5) speedRank = "HYPER";
+            else if (time < 6.0) speedRank = "EFFICIENT";
+            else if (time < 10.0) speedRank = "MODERATE";
+            else if (time < 15.0) speedRank = "SLUGGISH";
+            else speedRank = "LETHARGIC";
+            return success ? `${speedRank} WIN` : `${speedRank} FAIL`;
+        }
+
+        function checkGuess() {
+            if(isRevealed) return;
+            isRevealed = true;
+            stopTimer();
+            nextBtn.style.display = 'inline-block';
+
+            const userGuess = inputField.value.trim();
+            const timeTaken = getElapsedTime();
+            
+            // Check Success
+            let isLooseMatch = true;
+            if(userGuess.length !== currentTargetPhrase.length) isLooseMatch = false;
+            else {
+                for(let i=0; i<currentTargetPhrase.length; i++) {
+                    if(normalizeChar(userGuess[i]) !== normalizeChar(currentTargetPhrase[i])) {
+                        isLooseMatch = false; break;
+                    }
+                }
+            }
+
+            const gradeText = calculateGrade(timeTaken, isLooseMatch);
+            
+            logDivider();
+            logToTerminal(`TARGET: ${currentTargetPhrase}`);
+            logToTerminal(`INPUT: ${userGuess || "NULL"}`);
+            if(isLooseMatch) {
+                logToTerminal(`RESULT: ${gradeText}`, 'log-success');
+                audio.correct.currentTime = 0;
+                audio.correct.play().catch(e=>{});
+            } else {
+                logToTerminal(`RESULT: ${gradeText}`, 'log-fail');
+                logToTerminal(`MEANING: ${currentMeaning}`, 'log-system');
+                audio.wrong.currentTime = 0;
+                audio.wrong.play().catch(e=>{});
+            }
+
+            meaningResult.innerText = `Meaning: ${currentMeaning}`;
+
+            let diffHtml = '';
+            const maxLength = Math.max(userGuess.length, currentTargetPhrase.length);
+
+            for (let i = 0; i < maxLength; i++) {
+                const charCorrect = currentTargetPhrase[i] || '';
+                const charGuess = userGuess[i] || '';
+                
+                let topClass = '';
+                let midClass = 'reveal-dim';
+                let helperText = ''; // Bottom text (English Letter)
+
+                if (charGuess && charCorrect && charGuess.toLowerCase() === charCorrect.toLowerCase()) {
+                    // Exact Match
+                    topClass = 'correct-char';
+                } else if (charGuess && charCorrect && normalizeChar(charGuess) === normalizeChar(charCorrect)) {
+                    // Close Match
+                    topClass = 'close-char';
+                } else {
+                    // Wrong Match
+                    topClass = 'wrong-char';
+                    midClass = 'reveal-bright'; // Highlight Automaton Symbol
+                    helperText = charCorrect;   // Show correct English letter below
+                }
+
+                // Handle space visual
+                const displayGuess = (charGuess === ' ') ? '&nbsp;' : (charGuess || '_');
+                const displayCorrect = (charCorrect === ' ') ? '&nbsp;' : charCorrect;
+
+                diffHtml += `
+                    <div class="letter-column">
+                        <div class="feedback-top ${topClass}">${displayGuess}</div>
+                        <div class="feedback-mid ${midClass}">${displayCorrect}</div>
+                        <div class="feedback-bot">${helperText}</div>
+                    </div>
+                `;
+            }
+            
+            diffResult.innerHTML = diffHtml;
+            feedbackContainer.style.opacity = '1';
+        }
+
+        init();
+    </script>
+</body>
+</html>
