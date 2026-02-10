@@ -27,16 +27,38 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             height: 100vh;
             margin: 0;
-            overflow: hidden;
+            overflow: hidden; /* Prevents desktop scrolling */
             user-select: none;
             touch-action: manipulation;
         }
 
-        /* Scanline Overlay */
+        /* --- VISUAL FX (ADAPTED FROM AUTOMATONS.HTML) --- */
+        .noise-overlay {
+            position: fixed; inset: 0; pointer-events: none; z-index: 1;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+            background-size: 50vh;
+            animation: grain 1s steps(3) infinite;
+            opacity: 0.15;
+        }
+        @keyframes grain {
+            0%, 100% { transform: translate(0, 0) scale(1.2); }
+            10% { transform: translate(-3%, -2%) scale(1.2); }
+            20% { transform: translate(2%, 3%) scale(1.2); }
+            40% { transform: translate(-1%, 4%) scale(1.2); }
+            60% { transform: translate(3%, -1%) scale(1.2); }
+            80% { transform: translate(-2%, -3%) scale(1.2); }
+        }
+
         .scanlines {
-            position: fixed; inset: 0; pointer-events: none;
-            background: repeating-linear-gradient(to bottom, transparent 0%, transparent 80%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0.1) 100%);
-            background-size: 100% 4px; z-index: 500; opacity: 0.4;
+            position: fixed; inset: 0; pointer-events: none; z-index: 500;
+            background: repeating-linear-gradient(to bottom, transparent 0%, transparent 80%, rgba(0, 0, 0, 0.22) 50%, rgba(0, 0, 0, 0.22) 100%);
+            background-size: 100% 1.5vh;
+            mix-blend-mode: overlay;
+            animation: scan 120s linear infinite;
+        }
+        @keyframes scan {
+            0% { background-position: 0 0%; }
+            100% { background-position: 0 100%; }
         }
 
         /* --- LAYOUT CONTAINERS --- */
@@ -44,7 +66,7 @@
             position: fixed;
             right: 0; top: 0; bottom: 0;
             width: 300px;
-            background: rgba(0, 0, 0, 0.3);
+            background: rgba(0, 0, 0, 0.4);
             border-left: 2px solid #333;
             padding: 20px;
             overflow-y: auto;
@@ -56,13 +78,11 @@
             box-sizing: border-box;
             font-size: 0.8rem;
             color: #888;
-            scrollbar-width: thin;
-            scrollbar-color: #444 #111;
         }
 
         .game-wrapper {
             position: absolute;
-            top: 45%; left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             width: 95%;
             max-width: 900px;
@@ -70,90 +90,82 @@
             flex-direction: column;
             align-items: center;
             z-index: 10;
-            transition: all 0.5s ease;
+            transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1);
         }
 
         h1 {
             font-family: 'FSSinclair', sans-serif;
             font-size: 0.8rem; color: #555; letter-spacing: 4px;
-            text-transform: uppercase; margin-bottom: 10px;
-            border-bottom: 1px solid #333; display: inline-block; padding-bottom: 5px;
+            text-transform: uppercase; margin-bottom: 20px;
+            border-bottom: 1px solid #333; display: inline-block; padding-bottom: 10px;
         }
 
-        /* --- CHEAT SHEET MODAL --- */
+        /* --- LOG STYLES --- */
+        .log-entry { margin-bottom: 4px; word-break: break-all; }
+        .log-system { color: #555; }
+        .log-success { color: #4caf50; }
+        .log-fail { color: #f44336; }
+        .log-divider { color: #333; margin: 10px 0; }
+        .cursor-blink { animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* --- CHEAT SHEET --- */
         #cheat-sheet-btn {
             position: fixed; top: 20px; left: 20px;
             z-index: 1000; background: rgba(0,0,0,0.5); border: 1px solid #444;
             color: #888; padding: 8px 15px; font-family: 'FSSinclair', sans-serif;
             cursor: pointer; text-transform: uppercase; font-size: 0.7rem;
-            letter-spacing: 1px; transition: all 0.2s;
         }
-        #cheat-sheet-btn:hover { border-color: #fff; color: #fff; }
 
         .cheat-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
             z-index: 2000; display: none; align-items: center; justify-content: center;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(10px);
         }
         .cheat-content {
-            background: #111; border: 1px solid #333; width: 90%; max-width: 600px;
-            max-height: 80vh; overflow-y: auto; padding: 30px; position: relative;
+            background: #000; border: 1px solid #333; width: 90%; max-width: 600px;
+            padding: 30px; position: relative;
         }
         .cheat-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
             gap: 15px; margin-top: 20px;
         }
-        .cheat-item {
-            display: flex; flex-direction: column; align-items: center; border: 1px solid #222; padding: 5px;
-        }
+        .cheat-item { display: flex; flex-direction: column; align-items: center; border: 1px solid #222; padding: 5px; }
         .cheat-sym { font-family: 'CollectiveConsciousness', sans-serif; font-size: 1.8rem; color: #fff; }
-        .cheat-char { font-family: 'FSSinclair', sans-serif; font-size: 0.8rem; color: #555; margin-top: 5px; }
-        .close-cheat { position: absolute; top: 10px; right: 15px; color: #f44336; cursor: pointer; font-family: 'FSSinclair'; }
+        .cheat-char { font-family: 'FSSinclair', sans-serif; font-size: 0.8rem; color: #555; }
 
         /* --- GAME ELEMENTS --- */
         #timer-display {
             font-family: 'FSSinclair', monospace;
-            font-size: 1.2rem;
-            color: #fe3441;
-            margin-bottom: 10px;
+            font-size: 1.5rem; color: #fe3441; margin-bottom: 20px;
             text-shadow: 0 0 5px rgba(254, 52, 65, 0.5);
             opacity: 0; transition: opacity 1s;
         }
 
         #word-display {
             font-family: 'CollectiveConsciousness', sans-serif;
-            font-size: clamp(2.5rem, 8vw, 5rem);
-            margin: 10px 0 20px 0;
-            color: #fff;
+            font-size: clamp(2.5rem, 8vw, 5.5rem);
+            margin: 10px 0 30px 0; color: #fff;
             text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
-            min-height: 80px;
-            letter-spacing: 5px;
+            min-height: 120px; letter-spacing: 5px;
             opacity: 0; transition: opacity 1s;
-            white-space: nowrap;
             text-align: center;
         }
 
-        /* --- STACKED FEEDBACK (3 ROWS) --- */
         #feedback-container {
-            margin-top: 10px; opacity: 0;
-            transition: opacity 0.4s ease;
-            display: flex; flex-direction: column; align-items: center; gap: 10px;
-            width: 100%;
+            margin-top: 20px; opacity: 0; display: flex; flex-direction: column; align-items: center; gap: 15px;
         }
 
         .diff-display {
-            display: flex; flex-direction: row; gap: 4px; justify-content: center;
-            background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid #333;
-            max-width: 100%; overflow-x: auto;
+            display: flex; flex-direction: row; gap: 8px; justify-content: center;
+            background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; border: 1px solid #333;
+            max-width: 90vw; overflow-x: auto;
         }
 
-        .letter-column { 
-            display: flex; flex-direction: column; align-items: center; min-width: 30px; 
-        }
-        
-        .feedback-top { font-family: 'FSSinclair', sans-serif; font-size: 1.2rem; text-transform: uppercase; height: 30px; }
-        .feedback-mid { font-family: 'CollectiveConsciousness', sans-serif; font-size: 1.5rem; height: 30px; }
-        .feedback-bot { font-family: 'FSSinclair', sans-serif; font-size: 0.8rem; color: #888; height: 20px; margin-top: 2px; }
+        .letter-column { display: flex; flex-direction: column; align-items: center; min-width: 40px; }
+        .feedback-top { font-family: 'FSSinclair', sans-serif; font-size: 1.8rem; height: 40px; }
+        .feedback-mid { font-family: 'CollectiveConsciousness', sans-serif; font-size: 2.2rem; height: 40px; }
+        .feedback-bot { font-family: 'FSSinclair', sans-serif; font-size: 0.9rem; color: #888; margin-top: 5px; }
 
         .correct-char { color: #4caf50; text-shadow: 0 0 5px #4caf50; } 
         .close-char   { color: #ffeb3b; text-shadow: 0 0 5px #ffeb3b; } 
@@ -161,42 +173,42 @@
         .reveal-dim    { color: #555; opacity: 0.3; } 
         .reveal-bright { color: #fff; text-shadow: 0 0 10px #fff; } 
 
-        .meaning-display { font-family: 'FSSinclair', sans-serif; font-size: 1rem; color: #888; font-style: italic; }
+        .meaning-display { font-family: 'FSSinclair', sans-serif; font-size: 1.2rem; color: #888; font-style: italic; }
 
-        /* --- INPUT --- */
+        /* --- INPUT AREA --- */
         .input-area {
-            position: fixed; bottom: 40px; width: 100%;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 20;
-            pointer-events: none; opacity: 0; transition: opacity 1s;
+            position: fixed; bottom: 80px; width: 100%;
+            display: flex; flex-direction: column; align-items: center;
+            z-index: 20; pointer-events: none; opacity: 0; transition: opacity 1s;
         }
 
         input[type="text"] {
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.7);
             border: 1px solid #333; border-bottom: 2px solid #555;
             color: #fff; font-family: 'FSSinclair', sans-serif;
-            font-size: 1.2rem; text-align: center;
-            width: 80%; max-width: 300px; padding: 12px; outline: none;
-            transition: all 0.3s; text-transform: uppercase; letter-spacing: 2px;
+            font-size: 1.5rem; text-align: center;
+            width: 300px; padding: 15px; outline: none;
+            transition: all 0.3s; text-transform: uppercase;
             pointer-events: auto;
         }
 
         #next-btn {
             margin-top: 10px; background: transparent; border: 1px solid #444; color: #888;
-            padding: 8px 20px; cursor: pointer; font-family: 'FSSinclair', sans-serif; text-transform: uppercase;
-            letter-spacing: 2px; display: none; pointer-events: auto;
+            padding: 10px 30px; cursor: pointer; font-family: 'FSSinclair', sans-serif;
+            text-transform: uppercase; display: none; pointer-events: auto;
         }
 
-        /* --- MOBILE RESPONSIVENESS --- */
+        /* --- MOBILE LAYOUT FIX --- */
         @media (max-width: 1100px) {
-            .os-sidebar { display: none; } /* Hide sidebar on smaller screens */
+            .os-sidebar { display: none; }
             .game-wrapper { top: 40%; }
         }
 
-        @media (max-height: 600px) {
-            .game-wrapper { top: 35%; }
-            .input-area { bottom: 20px; }
-            #word-display { font-size: 2.5rem; min-height: 50px; }
+        /* This only shifts the UI if the screen is actually small (keyboard visible) */
+        @media (max-width: 768px) {
+            body.keyboard-open .game-wrapper {
+                transform: translate(-50%, -85%);
+            }
         }
 
         .loading { color: #666; font-size: 1rem; font-family: 'FSSinclair', sans-serif; animation: pulse 1.5s infinite; }
@@ -206,17 +218,15 @@
 </head>
 <body>
 
+    <div class="noise-overlay"></div>
     <div class="scanlines"></div>
     
     <button id="cheat-sheet-btn">Cheat Sheet</button>
 
     <div class="cheat-overlay" id="cheat-overlay">
         <div class="cheat-content">
-            <span class="close-cheat" id="close-cheat">CLOSE [X]</span>
-            <h2 style="font-family: 'FSSinclair'; color: #fff; border-bottom: 1px solid #333; padding-bottom: 10px;">SYMBOL MAPPING</h2>
-            <div class="cheat-grid" id="cheat-grid">
-                <!-- Populated by JS -->
-            </div>
+            <h2 style="font-family: 'FSSinclair'; color: #fff; border-bottom: 1px solid #333; padding-bottom: 10px;">DECRYPTION KEY [ESC TO CLOSE]</h2>
+            <div class="cheat-grid" id="cheat-grid"></div>
         </div>
     </div>
 
@@ -224,7 +234,7 @@
         <div class="log-entry log-system">> SYSTEM INITIALIZING...<span class="cursor-blink">_</span></div>
     </div>
 
-    <div class="game-wrapper">
+    <div class="game-wrapper" id="game-wrapper">
         <h1>// Decryption Protocol //</h1>
         <div id="timer-display">0.00s</div>
         <div id="word-display"><span class="loading">WAITING FOR SYSTEM...</span></div>
@@ -241,41 +251,20 @@
     </div>
 
     <script>
-        // --- AUDIO ENGINE ---
+        // --- AUDIO ---
         const audio = {
             type: new Audio('automatons/ui_effect_5.ogg'),
             correct: new Audio('automatons/menu_375.ogg'),
             wrong: new Audio('automatons/bot_siren.ogg')
         };
-        audio.type.volume = 0.4;
-        audio.correct.volume = 0.6;
-        audio.wrong.volume = 0.5;
-
         function playTypeSound() {
-            const sound = audio.type.cloneNode(); 
-            sound.playbackRate = 0.8 + Math.random() * 0.5; 
-            sound.play().catch(e => {}); 
+            const s = audio.type.cloneNode();
+            s.volume = 0.3; s.playbackRate = 0.8 + Math.random() * 0.4;
+            s.play().catch(()=>{});
         }
 
-        // --- CHEAT SHEET ---
-        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ0123456789".split("");
-        const cheatGrid = document.getElementById('cheat-grid');
-        chars.forEach(c => {
-            const item = document.createElement('div');
-            item.className = 'cheat-item';
-            item.innerHTML = `<div class="cheat-sym">${c}</div><div class="cheat-char">${c}</div>`;
-            cheatGrid.appendChild(item);
-        });
-
-        $('#cheat-sheet-btn').click(() => $('#cheat-overlay').css('display', 'flex'));
-        $('#close-cheat, #cheat-overlay').click((e) => {
-            if(e.target.id === 'cheat-overlay' || e.target.id === 'close-cheat') $('#cheat-overlay').hide();
-        });
-
-        // --- TERMINAL LOGIC ---
+        // --- TERMINAL ---
         const terminalLog = document.getElementById('terminal-log');
-        const SYSTEM_BOOT_LINES = ["LOADING KERNEL...", "MOUNTING VOLUMES [OK]", "CONNECTING TO ARCHIVE...", "SYSTEM READY."];
-
         function logToTerminal(text, cssClass = 'log-system') {
             const prev = terminalLog.querySelector('.cursor-blink');
             if(prev) prev.remove();
@@ -289,95 +278,85 @@
             terminalLog.scrollTop = terminalLog.scrollHeight;
         }
 
-        function logDivider() {
-            const div = document.createElement('div');
-            div.className = 'log-divider'; div.innerText = '----------------';
-            terminalLog.appendChild(div);
-            terminalLog.scrollTop = terminalLog.scrollHeight;
-        }
+        // --- CHEAT SHEET ---
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ0123456789".split("");
+        const cheatGrid = document.getElementById('cheat-grid');
+        chars.forEach(c => {
+            const item = document.createElement('div');
+            item.className = 'cheat-item';
+            item.innerHTML = `<div class="cheat-sym">${c}</div><div class="cheat-char">${c}</div>`;
+            cheatGrid.appendChild(item);
+        });
+        $('#cheat-sheet-btn').click(() => $('#cheat-overlay').fadeIn(200));
+        $(window).keydown(e => { if(e.key === "Escape") $('#cheat-overlay').fadeOut(200); });
 
-        async function runBootSequence() {
-            for (let i = 0; i < SYSTEM_BOOT_LINES.length; i++) {
-                await new Promise(r => setTimeout(r, Math.random() * 200 + 50));
-                logToTerminal(SYSTEM_BOOT_LINES[i]);
-            }
-            startGameAfterBoot();
-        }
-
-        // --- GAME CONFIG & STATE ---
+        // --- GAME LOGIC ---
         const WORD_LIST_URL = 'https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/sv/sv_50k.txt';
         const TRANSLATION_API = 'https://api.mymemory.translated.net/get'; 
         const FALLBACK_WORDS = ["Automat", "Maskin", "Robot", "Ström", "Kod", "Hjärna"];
 
         let wordLibrary = [];
         let currentTargetPhrase = ""; 
-        let currentBaseWord = "";     
         let currentMeaning = "";
         let isRevealed = false;
         let startTime = 0;
         let timerInterval = null;
 
-        const wordDisplay = document.getElementById('word-display');
         const inputField = document.getElementById('user-guess');
-        const feedbackContainer = document.getElementById('feedback-container');
-        const meaningResult = document.getElementById('meaning-result');
-        const diffResult = document.getElementById('diff-result');
-        const nextBtn = document.getElementById('next-btn');
-        const timerDisplay = document.getElementById('timer-display');
-        const inputContainer = document.getElementById('input-container');
 
         async function init() {
-            runBootSequence();
             try {
                 const response = await fetch(WORD_LIST_URL);
                 const text = await response.text();
                 wordLibrary = text.split('\n').slice(0, 1500).map(line => line.split(' ')[0]).filter(w => w && w.length > 3); 
-            } catch (error) { wordLibrary = FALLBACK_WORDS; }
+            } catch (e) { wordLibrary = FALLBACK_WORDS; }
+            
+            for (let line of ["LOADING KERNEL...", "MOUNTING VOLUMES [OK]", "UPLINK ESTABLISHED", "SYSTEM READY."]) {
+                await new Promise(r => setTimeout(r, 200));
+                logToTerminal(line);
+            }
+            startGame();
         }
 
-        function startGameAfterBoot() {
-            wordDisplay.style.opacity = 1;
-            timerDisplay.style.opacity = 1;
-            inputContainer.style.opacity = 1;
+        function startGame() {
+            document.getElementById('word-display').style.opacity = 1;
+            document.getElementById('timer-display').style.opacity = 1;
+            document.getElementById('input-container').style.opacity = 1;
             inputField.disabled = false;
-            nextWord();
+            
+            // MOBILE SCROLL FIX: Apply class on focus only on small devices
+            inputField.addEventListener('focus', () => {
+                if(window.innerWidth <= 768) document.body.classList.add('keyboard-open');
+            });
+            inputField.addEventListener('blur', () => {
+                document.body.classList.remove('keyboard-open');
+            });
+
             inputField.addEventListener('input', () => { if(!isRevealed) playTypeSound(); });
             inputField.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') { if (!isRevealed) checkGuess(); else nextWord(); }
             });
-            inputField.focus();
-        }
-
-        function startTimer() {
-            if(timerInterval) clearInterval(timerInterval);
-            startTime = Date.now();
-            timerInterval = setInterval(() => {
-                timerDisplay.innerText = ((Date.now() - startTime) / 1000).toFixed(2) + "s";
-            }, 50);
+            nextWord();
         }
 
         function nextWord() {
             isRevealed = false;
-            feedbackContainer.style.opacity = '0';
-            nextBtn.style.display = 'none';
+            $('#feedback-container').css('opacity', 0);
+            $('#next-btn').hide();
             inputField.value = '';
             inputField.focus();
-            meaningResult.innerText = "Translating..."; 
             
-            currentBaseWord = wordLibrary[Math.floor(Math.random() * wordLibrary.length)];
-            currentTargetPhrase = Math.random() < 0.3 ? (Math.random() < 0.5 ? `${Math.floor(Math.random()*99)} ${currentBaseWord}` : `${currentBaseWord} ${Math.floor(Math.random()*99)}`) : currentBaseWord;
+            const base = wordLibrary[Math.floor(Math.random() * wordLibrary.length)];
+            currentTargetPhrase = Math.random() < 0.3 ? (Math.random() < 0.5 ? `${Math.floor(Math.random()*99)} ${base}` : `${base} ${Math.floor(Math.random()*99)}`) : base;
 
-            wordDisplay.innerHTML = currentTargetPhrase;
-            startTimer();
-            fetchTranslation(currentBaseWord);
-        }
+            document.getElementById('word-display').innerText = currentTargetPhrase;
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                document.getElementById('timer-display').innerText = ((Date.now() - startTime) / 1000).toFixed(2) + "s";
+            }, 50);
 
-        async function fetchTranslation(word) {
-            try {
-                const res = await fetch(`${TRANSLATION_API}?q=${encodeURIComponent(word)}&langpair=sv|en`);
-                const data = await res.json();
-                currentMeaning = data?.responseData?.translatedText || "Unknown";
-            } catch (e) { currentMeaning = "Offline"; }
+            fetch(`${TRANSLATION_API}?q=${encodeURIComponent(base)}&langpair=sv|en`)
+                .then(r => r.json()).then(d => currentMeaning = d?.responseData?.translatedText || "Unknown");
         }
 
         function normalizeChar(char) {
@@ -388,13 +367,23 @@
             return c;
         }
 
+        function calculateGrade(time, success) {
+            let speedRank = "";
+            if (time < 2.0) speedRank = "OMNISCIENT";
+            else if (time < 3.5) speedRank = "HYPER";
+            else if (time < 6.0) speedRank = "EFFICIENT";
+            else if (time < 10.0) speedRank = "MODERATE";
+            else if (time < 15.0) speedRank = "SLUGGISH";
+            else speedRank = "LETHARGIC";
+            return success ? `${speedRank} WIN` : `${speedRank} FAIL`;
+        }
+
         function checkGuess() {
-            if(isRevealed) return;
             isRevealed = true;
             clearInterval(timerInterval);
-            nextBtn.style.display = 'inline-block';
-
+            const timeTaken = (Date.now() - startTime) / 1000;
             const userGuess = inputField.value.trim();
+            
             let isLooseMatch = (userGuess.length === currentTargetPhrase.length);
             if(isLooseMatch) {
                 for(let i=0; i<currentTargetPhrase.length; i++) {
@@ -402,34 +391,38 @@
                 }
             }
 
-            logDivider();
+            const grade = calculateGrade(timeTaken, isLooseMatch);
+            logToTerminal(`----------------`, 'log-system');
             logToTerminal(`TARGET: ${currentTargetPhrase}`);
-            if(isLooseMatch) { logToTerminal(`RESULT: SUCCESS`, 'log-success'); audio.correct.play().catch(e=>{}); }
-            else { logToTerminal(`RESULT: FAIL`, 'log-fail'); audio.wrong.play().catch(e=>{}); }
+            logToTerminal(`INPUT: ${userGuess || "NULL"}`);
+            logToTerminal(`RESULT: ${grade}`, isLooseMatch ? 'log-success' : 'log-fail');
+            logToTerminal(`MEANING: ${currentMeaning}`);
 
-            meaningResult.innerText = `Meaning: ${currentMeaning}`;
+            if(isLooseMatch) audio.correct.play().catch(()=>{}); else audio.wrong.play().catch(()=>{});
 
+            document.getElementById('meaning-result').innerText = `Meaning: ${currentMeaning}`;
             let diffHtml = '';
-            const maxLength = Math.max(userGuess.length, currentTargetPhrase.length);
+            const max = Math.max(userGuess.length, currentTargetPhrase.length);
 
-            for (let i = 0; i < maxLength; i++) {
-                const charCorrect = currentTargetPhrase[i] || '';
-                const charGuess = userGuess[i] || '';
-                let topClass = '', midClass = 'reveal-dim', helperText = '';
+            for (let i = 0; i < max; i++) {
+                const correct = currentTargetPhrase[i] || '';
+                const guess = userGuess[i] || '';
+                let topClass = '', midClass = 'reveal-dim', helper = '';
 
-                if (charGuess.toLowerCase() === charCorrect.toLowerCase() && charCorrect !== '') topClass = 'correct-char';
-                else if (normalizeChar(charGuess) === normalizeChar(charCorrect) && charCorrect !== '') topClass = 'close-char';
-                else { topClass = 'wrong-char'; midClass = 'reveal-bright'; helperText = charCorrect; }
+                if (guess.toLowerCase() === correct.toLowerCase() && correct !== '') topClass = 'correct-char';
+                else if (normalizeChar(guess) === normalizeChar(correct) && correct !== '') topClass = 'close-char';
+                else { topClass = 'wrong-char'; midClass = 'reveal-bright'; helper = correct; }
 
                 diffHtml += `
                     <div class="letter-column">
-                        <div class="feedback-top ${topClass}">${charGuess === ' ' ? '&nbsp;' : (charGuess || '_')}</div>
-                        <div class="feedback-mid ${midClass}">${charCorrect === ' ' ? '&nbsp;' : charCorrect}</div>
-                        <div class="feedback-bot">${helperText}</div>
+                        <div class="feedback-top ${topClass}">${guess === ' ' ? '&nbsp;' : (guess || '_')}</div>
+                        <div class="feedback-mid ${midClass}">${correct === ' ' ? '&nbsp;' : correct}</div>
+                        <div class="feedback-bot">${helper}</div>
                     </div>`;
             }
-            diffResult.innerHTML = diffHtml;
-            feedbackContainer.style.opacity = '1';
+            document.getElementById('diff-result').innerHTML = diffHtml;
+            $('#feedback-container').css('opacity', 1);
+            $('#next-btn').show();
         }
 
         init();
