@@ -1,3 +1,5 @@
+--- START OF FILE learn.html ---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -27,12 +29,16 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             height: 100vh;
             margin: 0;
-            overflow: hidden; /* Prevents desktop scrolling */
+            overflow: hidden;
             user-select: none;
             touch-action: manipulation;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
         }
 
-        /* --- VISUAL FX (ADAPTED FROM AUTOMATONS.HTML) --- */
+        /* --- VISUAL FX --- */
         .noise-overlay {
             position: fixed; inset: 0; pointer-events: none; z-index: 1;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600'%3E%3Cfilter id='n' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
@@ -56,10 +62,7 @@
             mix-blend-mode: overlay;
             animation: scan 120s linear infinite;
         }
-        @keyframes scan {
-            0% { background-position: 0 0%; }
-            100% { background-position: 0 100%; }
-        }
+        @keyframes scan { 0% { background-position: 0 0%; } 100% { background-position: 0 100%; } }
 
         /* --- LAYOUT CONTAINERS --- */
         .os-sidebar {
@@ -80,17 +83,24 @@
             color: #888;
         }
 
+        /* 
+           Using margin-top transition for smooth sliding on mobile keyboards 
+           instead of absolute positioning which causes snapping.
+        */
         .game-wrapper {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
+            margin-top: 25vh; /* Default desktop vertical center */
             width: 95%;
             max-width: 900px;
             display: flex;
             flex-direction: column;
             align-items: center;
             z-index: 10;
-            transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1);
+            transition: margin-top 0.6s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.5s ease;
+        }
+
+        /* Slide up when keyboard is active or screen is small */
+        body.keyboard-open .game-wrapper {
+            margin-top: 5vh;
         }
 
         h1 {
@@ -100,7 +110,7 @@
             border-bottom: 1px solid #333; display: inline-block; padding-bottom: 10px;
         }
 
-        /* --- LOG STYLES --- */
+        /* --- TERMINAL LOG --- */
         .log-entry { margin-bottom: 4px; word-break: break-all; }
         .log-system { color: #555; }
         .log-success { color: #4caf50; }
@@ -115,24 +125,30 @@
             z-index: 1000; background: rgba(0,0,0,0.5); border: 1px solid #444;
             color: #888; padding: 8px 15px; font-family: 'FSSinclair', sans-serif;
             cursor: pointer; text-transform: uppercase; font-size: 0.7rem;
+            transition: all 0.2s;
         }
+        #cheat-sheet-btn:hover { border-color: #fff; color: #fff; }
 
         .cheat-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.95);
             z-index: 2000; display: none; align-items: center; justify-content: center;
             backdrop-filter: blur(10px);
         }
-        .cheat-content {
-            background: #000; border: 1px solid #333; width: 90%; max-width: 600px;
-            padding: 30px; position: relative;
+        .cheat-content { 
+            background: #000; border: 1px solid #333; width: 90%; max-width: 600px; 
+            padding: 30px; position: relative; max-height: 85vh; overflow-y: auto;
         }
-        .cheat-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-            gap: 15px; margin-top: 20px;
-        }
+        .cheat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 15px; margin-top: 20px; }
         .cheat-item { display: flex; flex-direction: column; align-items: center; border: 1px solid #222; padding: 5px; }
         .cheat-sym { font-family: 'CollectiveConsciousness', sans-serif; font-size: 1.8rem; color: #fff; }
         .cheat-char { font-family: 'FSSinclair', sans-serif; font-size: 0.8rem; color: #555; }
+        
+        /* RESTORED CLOSE BUTTON STYLE */
+        .close-cheat { 
+            position: absolute; top: 10px; right: 15px; 
+            color: #f44336; cursor: pointer; font-family: 'FSSinclair'; font-size: 0.8rem;
+        }
+        .close-cheat:hover { color: #fff; }
 
         /* --- GAME ELEMENTS --- */
         #timer-display {
@@ -148,12 +164,12 @@
             margin: 10px 0 30px 0; color: #fff;
             text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
             min-height: 120px; letter-spacing: 5px;
-            opacity: 0; transition: opacity 1s;
-            text-align: center;
+            opacity: 0; transition: opacity 1s; text-align: center;
         }
 
         #feedback-container {
             margin-top: 20px; opacity: 0; display: flex; flex-direction: column; align-items: center; gap: 15px;
+            transition: transform 0.4s ease, opacity 0.4s ease;
         }
 
         .diff-display {
@@ -175,20 +191,16 @@
 
         .meaning-display { font-family: 'FSSinclair', sans-serif; font-size: 1.2rem; color: #888; font-style: italic; }
 
-        /* --- INPUT AREA --- */
+        /* --- INPUT --- */
         .input-area {
             position: fixed; bottom: 80px; width: 100%;
             display: flex; flex-direction: column; align-items: center;
             z-index: 20; pointer-events: none; opacity: 0; transition: opacity 1s;
         }
-
         input[type="text"] {
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid #333; border-bottom: 2px solid #555;
-            color: #fff; font-family: 'FSSinclair', sans-serif;
-            font-size: 1.5rem; text-align: center;
-            width: 300px; padding: 15px; outline: none;
-            transition: all 0.3s; text-transform: uppercase;
+            background: rgba(0, 0, 0, 0.7); border: 1px solid #333; border-bottom: 2px solid #555;
+            color: #fff; font-family: 'FSSinclair', sans-serif; font-size: 1.5rem; text-align: center;
+            width: 300px; padding: 15px; outline: none; transition: all 0.3s; text-transform: uppercase;
             pointer-events: auto;
         }
 
@@ -198,18 +210,9 @@
             text-transform: uppercase; display: none; pointer-events: auto;
         }
 
-        /* --- MOBILE LAYOUT FIX --- */
-        @media (max-width: 1100px) {
-            .os-sidebar { display: none; }
-            .game-wrapper { top: 40%; }
-        }
-
-        /* This only shifts the UI if the screen is actually small (keyboard visible) */
-        @media (max-width: 768px) {
-            body.keyboard-open .game-wrapper {
-                transform: translate(-50%, -85%);
-            }
-        }
+        /* --- RESPONSIVENESS --- */
+        @media (max-width: 1100px) { .os-sidebar { display: none; } }
+        @media (max-width: 768px) { .game-wrapper { margin-top: 15vh; } }
 
         .loading { color: #666; font-size: 1rem; font-family: 'FSSinclair', sans-serif; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
@@ -225,7 +228,10 @@
 
     <div class="cheat-overlay" id="cheat-overlay">
         <div class="cheat-content">
-            <h2 style="font-family: 'FSSinclair'; color: #fff; border-bottom: 1px solid #333; padding-bottom: 10px;">DECRYPTION KEY [ESC TO CLOSE]</h2>
+            <!-- RESTORED CLOSE BUTTON -->
+            <span class="close-cheat" id="close-cheat">CLOSE [X]</span>
+            
+            <h2 style="font-family: 'FSSinclair'; color: #fff; border-bottom: 1px solid #333; padding-bottom: 10px;">DECRYPTION KEY</h2>
             <div class="cheat-grid" id="cheat-grid"></div>
         </div>
     </div>
@@ -287,7 +293,19 @@
             item.innerHTML = `<div class="cheat-sym">${c}</div><div class="cheat-char">${c}</div>`;
             cheatGrid.appendChild(item);
         });
+
+        // Open Logic
         $('#cheat-sheet-btn').click(() => $('#cheat-overlay').fadeIn(200));
+
+        // Close Logic (Button or Click Outside)
+        $('#close-cheat, #cheat-overlay').on('click', function(e) {
+            // Only close if clicking the button or the dark background, not the content box
+            if(e.target.id === 'cheat-overlay' || e.target.id === 'close-cheat') {
+                $('#cheat-overlay').fadeOut(200);
+            }
+        });
+
+        // Close Logic (Escape Key)
         $(window).keydown(e => { if(e.key === "Escape") $('#cheat-overlay').fadeOut(200); });
 
         // --- GAME LOGIC ---
@@ -303,6 +321,7 @@
         let timerInterval = null;
 
         const inputField = document.getElementById('user-guess');
+        const gameWrapper = document.getElementById('game-wrapper');
 
         async function init() {
             try {
@@ -324,13 +343,9 @@
             document.getElementById('input-container').style.opacity = 1;
             inputField.disabled = false;
             
-            // MOBILE SCROLL FIX: Apply class on focus only on small devices
-            inputField.addEventListener('focus', () => {
-                if(window.innerWidth <= 768) document.body.classList.add('keyboard-open');
-            });
-            inputField.addEventListener('blur', () => {
-                document.body.classList.remove('keyboard-open');
-            });
+            // Mobile layout shift triggers
+            inputField.addEventListener('focus', () => document.body.classList.add('keyboard-open'));
+            inputField.addEventListener('blur', () => document.body.classList.remove('keyboard-open'));
 
             inputField.addEventListener('input', () => { if(!isRevealed) playTypeSound(); });
             inputField.addEventListener('keydown', (e) => {
